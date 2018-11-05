@@ -2,9 +2,8 @@ CC     = gcc
 CFLAGS = -g3 -std=c99 -pedantic -Wall
 HWK    = /c/cs323/Hwk4
 
-decode: decode.o
+encodeAndDecode: encodeAndDecode.o
 	${CC} ${CFLAGS} -o $@ $^ 
 
-encode.o: encode.c hash.c
+encodeAndDecode.o: encodeAndDecode.c hash.c stack.c
 
-decode.o: decode.c hash.c stack.c
