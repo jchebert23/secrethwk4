@@ -11,12 +11,14 @@
 #include <errno.h>
 #include <limits.h>
 int debugPrint1=0;
+int dePrint=0;
 typedef struct pair{
     int nchar;
     int pref;
 }pair;
  typedef struct hash{
     pair **table;
+    int pairsStored;
     int curbits;
 }hash;
  int init(int p, int c, int max)
@@ -26,7 +28,19 @@ typedef struct pair{
  int stepfunc(int p, int c, int max){
 	return ((2 * (((p)<<CHAR_BIT)|(c)) + 1) % max);
 }
- void addToHash(pair **table,int max, int p , int c){
+
+
+hash * extendhash(hash *h);
+
+void addToHash(hash *h,int max, int p , int c){
+    double loadAverage =(double) (h->pairsStored+1) / (double)h->curbits;
+    if(loadAverage <= .99)
+    {
+    //extendhash(h);
+    
+    pair ** table = h->table;
+    
+    h->pairsStored++;
     int start = init(p, c, max);
     int step = stepfunc(p,c, max);
     if(debugPrint1){printf("Adding nchar: %d, and pref: %d to with start: %d and step: %d\n", c, p, start, step);}
@@ -35,7 +49,7 @@ typedef struct pair{
     table[start]->nchar=c;
     table[start]->pref=p;
     if(debugPrint1){printf("Adding nchar: %d, and pref: %d to hash at index %d\n", c, p, start);}
-    }
+    }}
 int  search(pair **table, int max, int p, int c){
     int start = init(p, c, max);
     while(table[start] || start==0){
@@ -46,13 +60,13 @@ int  search(pair **table, int max, int p, int c){
  hash * initHash(int rows)
 {
     hash *h=malloc(sizeof(hash));
-    if(debugPrint1){printf("Line %d; num of rows: %d\n", __LINE__, rows);}
+    h->pairsStored=0;
+    if(debugPrint1){printf("Line %d in intialize hash; num of rows: %d\n", __LINE__, rows);}
     h->curbits= rows;
     h->table = calloc( h->curbits, sizeof(pair *));
-    pair ** table= h->table;
     for(int i=0; i<256; i++)
     {
-	addToHash(table, h->curbits, 0, i);	
+	addToHash(h, h->curbits, 0, i);
     }
     return h;
 }
@@ -66,3 +80,43 @@ int  search(pair **table, int max, int p, int c){
 	free(h->table);
 	free(h);
 }
+
+
+int copyOver(hash *newHash, hash *oldHash, int nchar, int pref)
+{
+    //This could be sped up
+    if(pref!=0)
+    {
+	pref = copyOver(newHash, oldHash, oldHash->table[pref]->nchar, oldHash->table[pref]->pref);
+	if(search(newHash->table, newHash->curbits, nchar, pref)==0)
+	{
+	addToHash(newHash, newHash->curbits, pref, nchar);
+	}
+    }
+    return search(newHash->table, newHash->curbits, pref, nchar);
+
+}
+
+hash * extendhash(hash *h)
+{
+	//IMPORTANT, should this be an int
+	int prevSize= h->curbits;
+	hash *newHash = initHash(prevSize << 1);
+	for(int i = 0; i<h->curbits; i++)
+	{
+		if(h->table[i]){copyOver(newHash, h, h->table[i]->nchar, h->table[i]->pref);}
+	}
+	destroyHash(h);
+	return newHash;
+}
+
+/*
+int main(int argc, char **argv)
+{
+hash *h = initHash( 2 << 9 );
+addToHash(h, h->curbits, search(h->table, h->curbits, 0, 'a')  , 'a');
+addToHash(h, h->curbits, search(h->table, h->curbits, 0, 'a')  , 'b');
+hash *newHash = extendhash(h);
+printf("Location of \'aa\' in new Hash: %d\n", search(newHash->table, newHash->curbits, search(newHash->table, newHash->curbits, 0, 'a'), 'a'));
+}
+*/
