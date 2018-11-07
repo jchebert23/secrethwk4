@@ -13,8 +13,8 @@
 int debugPrint1=0;
 int dePrint=0;
 typedef struct pair{
-    int nchar;
-    int pref;
+    unsigned int nchar:8;
+    unsigned int pref:23;
 }pair;
  typedef struct hash{
     pair **table;

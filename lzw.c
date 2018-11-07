@@ -1,5 +1,6 @@
 #include "hash.c"
 #include "stack.c"
+#include "/c/cs323/Hwk4/code.h"
 int debugPrint=0;
 int debugPrint2=0;
 
@@ -32,7 +33,7 @@ void encode(void){
 	    if(search(h->table, h->curbits, c, k)==0)
 	    {
 		    if(debugPrint){printf("Adding to outputfile: %c with prefix code: ", k); printCodeAtIndex(h->table, c);}	    
-		    printf("%d\n", c);
+		    putBits(12, c);
 		    addToHash(h, h->curbits, c, k);
 		    if(debugPrint){printf("Added to table at index %d\n", search(h->table, h->curbits, c, k));} 
 		    c = search(h->table, h->curbits, 0, k);
@@ -40,8 +41,8 @@ void encode(void){
 	    else{c=search(h->table, h->curbits, c, k);}
     
     }
-
-    printf("%d\n", c);
+    if(c){putBits(12, c);}
+    flushBits();
     destroyHash(h);
 }
 
@@ -52,13 +53,10 @@ void decode(void){
    int oldC = 0;
    int newC = 0;
    int finalK=0;
-   char *buffer = malloc(sizeof(char) * 10);
-   size_t sizeOfBuf = 10;
+   int c=0;
    //may have problem with two files open
-   while((getline(&buffer, &sizeOfBuf,stdin))!=-1)
+   while((c= newC= getBits(12))!=EOF)
     {
-        int c = atoi(buffer);
-        newC=c;
 	if(table[c]==0){stackPush(&s, finalK); c = oldC;}
         while(table[c]->pref != 0)
         {
@@ -67,8 +65,8 @@ void decode(void){
                 c=table[c]->pref;
         }
         finalK = table[c]->nchar;
-        printf("%c", finalK);
-        while(s){printf("%c", stackPop(&s));}
+        putchar(finalK);
+        while(s){putchar(stackPop(&s));}
         if(oldC!=0)
         {
                 addToHash(h, h->curbits,oldC, finalK);
@@ -76,7 +74,7 @@ void decode(void){
         }
         oldC = newC;
     }
-    free(buffer);
+
     destroyHash(h);
 }
 
