@@ -25,12 +25,13 @@ void encode(void){
     hash *h = initHash(2 << 8);
     int c=0;
     int k;
+    int i;
     while((k =getc(stdin)) != EOF)
     {
 
 	    if(debugPrint){printf("Testing char %c with prefix code: ", k); 
 		    printCodeAtIndex(h->table, c);}	    		   
-	    if(search(h->table, h->curbits, c, k)==0)
+	    if((i=search(h->table, h->curbits, c, k))==0)
 	    {
 		    if(debugPrint){printf("Adding to outputfile: %c with prefix code: ", k); printCodeAtIndex(h->table, c);}	    
 		    putBits(h->power, c);
@@ -43,7 +44,7 @@ void encode(void){
 		    if(debugPrint){printf("Added to table at index %d\n", search(h->table, h->curbits, c, k));} 
 		    c = search(h->table, h->curbits, 0, k);
 	    }
-	    else{c=search(h->table, h->curbits, c, k);}
+	    else{c=i;}
     
     }
     if(c){putBits(h->power, c);}
@@ -98,5 +99,4 @@ int main(int argc, char **argv){
     {
 	    decode();
     }
-    decode();
 }

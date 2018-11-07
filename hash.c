@@ -12,7 +12,7 @@
 #include <limits.h>
 int debugPrint1=0;
 int dePrint=0;
-
+int debugPrint7=0;
 #define INIT(p,c) (p)
 #define STEP(p,c) (2 * (((p) <<CHAR_BIT)|(c)) +1)
 #define RED(x,m) ((x) & (m - 1))
@@ -36,7 +36,7 @@ typedef struct matching{
 
 void extendhash(hash *h);
 
-void addToHash(hash *h,int max, int p , int c){
+int addToHash(hash *h,int max, int p , int c){
    
 
     double loadAverage = (double) (h->pairsStored+1) / (double)h->curbits;
@@ -55,7 +55,10 @@ void addToHash(hash *h,int max, int p , int c){
     table[start]->nchar=c;
     table[start]->pref=p;
     if(debugPrint1){printf("Adding nchar: %d, and pref: %d to hash at index %d\n", c, p, start);}
-    }}
+    return start;
+    }
+return 0;
+}
 int  search(pair **table, int max, int p, int c){
     for(int i=0; i<max; i++){
     int increment = RED(INIT(p,c) + (i * STEP(p,c)), max);
@@ -91,6 +94,7 @@ int  search(pair **table, int max, int p, int c){
 int copyOver(hash *newHash, hash *oldHash, int nchar, int pref, matching *mdict)
 {
     //This could be sped up
+    int s;
     if(pref!=0)
     {
 	if(mdict[pref].match==0)
@@ -99,11 +103,11 @@ int copyOver(hash *newHash, hash *oldHash, int nchar, int pref, matching *mdict)
 		mdict[pref].match=1;
 		pref = copyOver(newHash, oldHash, oldHash->table[pref]->nchar, oldHash->table[pref]->pref, mdict);
 		mdict[oldpref].pref=pref;
-		addToHash(newHash, newHash->curbits, pref, nchar);
+		s = addToHash(newHash, newHash->curbits, pref, nchar);
 	}
-	else{addToHash(newHash, newHash->curbits, mdict[pref].pref, nchar);}
+	else{s = addToHash(newHash, newHash->curbits, mdict[pref].pref, nchar);}
     }
-    int s=search(newHash->table, newHash->curbits, pref, nchar);
+    else{s=search(newHash->table, newHash->curbits, pref, nchar);}
     return s;
 
 }
@@ -120,6 +124,7 @@ void destroyTable(hash *h)
 void  extendhash(hash *h)
 {
 	//IMPORTANT, should this be an int
+	
 	int prevSize= h->curbits;
 	hash *newHash = initHash(prevSize << 1);
 	newHash->power= h->power +1;
@@ -144,6 +149,7 @@ void  extendhash(hash *h)
 	h->curbits=newHash->curbits;
 	h->power= newHash->power;
 	h->table= newHash->table;
+	if(debugPrint7){printHash(h);}
 	free(newHash);
 }
 
