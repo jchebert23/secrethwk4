@@ -21,11 +21,11 @@ void printCodeAtIndex(pair **table, int c )
 	
 }
 
-void encode(void){
-    hash *h = initHash(2 << 8);
+void encode(hash *h){
     int c=0;
     int k;
     int i;
+    putBits(8, h->maxbit);
     while((k =getc(stdin)) != EOF)
     {
 
@@ -38,7 +38,7 @@ void encode(void){
 
 			double loadAverage =(double) (h->pairsStored+1) / (double)h->curbits;
 			if(loadAverage>=.99){
-			    if(h->power<12) 
+			    if(h->power<h->maxbit) 
 			    {extendhash(h);}}
 		    addToHash(h, h->curbits, c, k);
 		    if(debugPrint){printf("Added to table at index %d\n", search(h->table, h->curbits, c, k));} 
@@ -52,8 +52,7 @@ void encode(void){
     destroyHash(h);
 }
 
-void decode(void){
-   hash *h = initHash( 2 << 8);
+void decode(hash *h){
    Stack s = STACK_EMPTY;
    int oldC = 0;
    int newC = 0;
@@ -80,7 +79,7 @@ void decode(void){
                 addToHash(h, h->curbits,oldC, finalK);
 		double loadAverage =(double) (h->pairsStored+1) / (double)h->curbits;
 		if(loadAverage>=.99){
-		    if(h->power<12) 
+		    if(h->power<h->maxbit) 
 		    {extendhash(h);}}
 		if(debugPrint){printf("Adding to outputfile: %c with prefix code: ", finalK); printCodeAtIndex(h->table, oldC);}
         }
@@ -90,13 +89,44 @@ void decode(void){
     destroyHash(h);
 }
 
+int maxbits(int argc, char **argv){
+    int output=12;
+    for(int i=0; i<argc; i++)
+    {
+	if(strcmp(argv[i], "-m")==0)
+	{
+	    if(i+1 >= argc)
+	    {
+		    fprintf(stderr, "bad m option\n");
+		    exit(0);
+	    }
+	    output = atoi(argv[i+1]);
+	}
+    }
+    if(output<=8 || output>22){output=12;}
+    return output;	
+}
+
+
 int main(int argc, char **argv){
+    int maxbit = maxbits(argc, argv);
     if(strcmp(argv[0], "./encode")==0)
     {
-	    encode();
+	    
+	    hash *h = initHash(2 << 8, maxbit);
+	    encode(h);
     }
     else if(strcmp(argv[0], "./decode")==0)
     {
-	    decode();
+	    int max = getBits(8);
+	    hash *h = initHash(2 << 8, max);
+	    decode(h);
     }
+/*
+	    int max = getBits(8);
+	    printf("MAX: %d\n", max);
+	    hash *h = initHash(2 << 8, max);
+	    decode(h);
+
+*/
 }

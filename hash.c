@@ -19,12 +19,12 @@ int debugPrint7=0;
 
 typedef struct pair{
     unsigned int nchar:8;
-    unsigned int pref:23;
+    unsigned int pref:22;
 }pair;
 
 typedef struct matching{
     unsigned int match:1;
-    unsigned int pref:23;
+    unsigned int pref:22;
 }matching;
 
  typedef struct hash{
@@ -32,6 +32,7 @@ typedef struct matching{
     int pairsStored;
     int curbits;
     int power;
+    int maxbit;
 }hash;
 
 void extendhash(hash *h);
@@ -65,9 +66,11 @@ int  search(pair **table, int max, int p, int c){
     if(table[increment] && table[increment]->pref==p && table[increment]->nchar==c){return increment;}}
     return 0;
 }
- hash * initHash(int rows)
+ hash * initHash(int rows, int maxbits)
 {
+
     hash *h=malloc(sizeof(hash));
+    h->maxbit = maxbits;
     h->power =9;
     h->pairsStored=0;
     if(debugPrint1){printf("Line %d in intialize hash; num of rows: %d\n", __LINE__, rows);}
@@ -126,7 +129,7 @@ void  extendhash(hash *h)
 	//IMPORTANT, should this be an int
 	
 	int prevSize= h->curbits;
-	hash *newHash = initHash(prevSize << 1);
+	hash *newHash = initHash(prevSize << 1, h->maxbit);
 	newHash->power= h->power +1;
 	matching *mdict=malloc(sizeof(matching) * prevSize);
 	for(int i=0; i<prevSize; i++){mdict[i].match=0; mdict[i].pref=0;}
