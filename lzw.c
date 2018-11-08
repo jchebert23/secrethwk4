@@ -23,12 +23,15 @@ void printCodeAtIndex(pair *table, int c )
 
 void emptyTable(hash *h)
 {
-    destroyTable(h);
+    if(h->curbits > (2 << 8))
+    {
+	    free(h->table);
+	    h->table= malloc(sizeof(pair) * (2 << 8));
+    }
     h->curbits = (2 << 8);
     h->power= 9;
     h->pairsStored= 0;
-    h->table=malloc(h->curbits * sizeof(pair));
-    for(int i=0; i<h->curbits; i++){h->table[i].notNull=0;}
+    for(int i=0; i<h->curbits; i++){h->table[i].notNull=0; h->table[i].pref=0; h->table[i].nchar=0;}
     for(int i=0; i<256; i++)
     {
 	addToHash(h, h->curbits, 0, i);

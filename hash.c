@@ -21,12 +21,9 @@ typedef struct pair{
     unsigned int notNull:1;
     unsigned int nchar:8;
     unsigned int pref:22;
-}pair;
-
-typedef struct matching{
+    unsigned int npref:22;
     unsigned int match:1;
-    unsigned int pref:22;
-}matching;
+}pair;
 
  typedef struct hash{
     pair *table;
@@ -99,21 +96,21 @@ int  search(pair *table, int max, int p, int c){
 }
 
 
-int copyOver(hash *newHash, hash *oldHash, int nchar, int pref, matching *mdict)
+int copyOver(hash *newHash, hash *oldHash, int nchar, int pref)
 {
     //This could be sped up
     int s;
     if(pref!=0)
     {
-	if(mdict[pref].match==0)
+	if(oldHash->table[pref].match==0)
 	{
 		int oldpref=pref;
-		mdict[pref].match=1;
-		pref = copyOver(newHash, oldHash, oldHash->table[pref].nchar, oldHash->table[pref].pref, mdict);
-		mdict[oldpref].pref=pref;
+		oldHash->table[pref].match=1;
+		pref = copyOver(newHash, oldHash, oldHash->table[pref].nchar, oldHash->table[pref].pref);
+		oldHash->table[oldpref].npref=pref;
 		s = addToHash(newHash, newHash->curbits, pref, nchar);
 	}
-	else{s = addToHash(newHash, newHash->curbits, mdict[pref].pref, nchar);}
+	else{s = addToHash(newHash, newHash->curbits, oldHash->table[pref].npref, nchar);}
     }
     else{s=search(newHash->table, newHash->curbits, pref, nchar);}
     return s;
@@ -135,23 +132,21 @@ void  extendhash(hash *h)
 	int prevSize= h->curbits;
 	hash *newHash = initHash(prevSize << 1, h->maxbit);
 	newHash->power= h->power +1;
-	matching *mdict=malloc(sizeof(matching) * prevSize);
-	for(int i=0; i<prevSize; i++){mdict[i].match=0; mdict[i].pref=0;}
+	//int *matching = malloc(sizeof(int) * prevSize);
+	for(int i=0; i<prevSize; i++){h->table[i].match=0;}
 	for(int i=0; i<256; i++)
 	{
 	int s = search(h->table, h->curbits, 0, i);
-	mdict[s].match=1;
-	mdict[s].pref=search(newHash->table, newHash->curbits, 0, i);
+	h->table[s].match=1;
+	h->table[s].npref=search(newHash->table, newHash->curbits, 0, i);
 	}
 	for(int i = 0; i<h->curbits; i++)
 	{
-		if(mdict[i].match==0)
+		if(h->table[i].match==0)
 		{
-		if(h->table[i].notNull){mdict[i].pref=copyOver(newHash, h, h->table[i].nchar, h->table[i].pref, mdict); mdict[i].match=1;}
+		if(h->table[i].notNull){h->table[i].npref=copyOver(newHash, h, h->table[i].nchar, h->table[i].pref); h->table[i].match=1;}
 		}
-	}
-		
-	free(mdict);
+	}	
 	destroyTable(h);
 	h->curbits=newHash->curbits;
 	h->power= newHash->power;
