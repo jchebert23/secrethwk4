@@ -33,6 +33,9 @@ typedef struct matching{
     int curbits;
     int power;
     int maxbit;
+    int block;
+    double ratio;
+    int rOption;
 }hash;
 
 void extendhash(hash *h);
@@ -73,6 +76,7 @@ int  search(pair **table, int max, int p, int c){
     h->maxbit = maxbits;
     h->power =9;
     h->pairsStored=0;
+    h->rOption=0;
     if(debugPrint1){printf("Line %d in intialize hash; num of rows: %d\n", __LINE__, rows);}
     h->curbits= rows;
     h->table = calloc( h->curbits, sizeof(pair *));
