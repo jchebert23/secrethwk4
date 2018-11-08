@@ -1,5 +1,4 @@
 #include "hash.c"
-#include "stack.c"
 #include "/c/cs323/Hwk4/code.h"
 int debugPrint=0;
 int debugPrint2=0;
@@ -24,7 +23,6 @@ void printCodeAtIndex(pair *table, int c )
 
 void emptyTable(hash *h)
 {
-
     destroyTable(h);
     h->curbits = (2 << 8);
     h->power= 9;
@@ -91,12 +89,27 @@ void encode(hash *h){
     destroyHash(h);
 }
 
+int decodeRecursive(hash *h, int c)
+{
+    if(h->table[c].pref == 0)
+    {
+	    putchar(h->table[c].nchar);
+	    return h->table[c].nchar;
+    }
+    else{
+    int x = h->table[c].pref;
+    int y = decodeRecursive(h, x);
+    putchar(h->table[c].nchar);
+    return y;
+}
+}
+
 void decode(hash *h){
-   Stack s = STACK_EMPTY;
    int oldC = 0;
    int newC = 0;
    int finalK=0;
    int c=0;
+   int oldFinalK=0;
    //may have problem with two files open
    while((c= newC= getBits(h->power))!=EOF)
     {	
@@ -105,19 +118,11 @@ void decode(hash *h){
 	oldC=0;
 	emptyTable(h);
 	continue;}
-	if(h->table[c].notNull==0){stackPush(&s, 256); c = oldC;}
-        while(h->table[c].pref != 0)
-        {
-		if(debugPrint2){printf("Line %d in ed.c, pushing %d to the stack in decode", __LINE__, c);}
-                stackPush(&s, h->table[c].nchar);
-                c=h->table[c].pref;
-        }
-        finalK = h->table[c].nchar;
-        putchar(finalK);
-        while(s){int i = stackPop(&s);
-		if(i==256){putchar(finalK);}
-		else{putchar(i);}}	
-        if(oldC!=0)
+	int firstCond = 0;
+	if(h->table[c].notNull==0){ c = oldC;firstCond=1; oldFinalK=finalK;}
+        finalK = decodeRecursive(h, c);
+        if(firstCond){putchar(oldFinalK);}
+	if(oldC!=0)
         {
 
                 addToHash(h, h->curbits,oldC, finalK);
