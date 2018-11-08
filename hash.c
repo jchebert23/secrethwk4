@@ -18,6 +18,7 @@ int debugPrint7=0;
 #define RED(x,m) ((x) & (m - 1))
 
 typedef struct pair{
+    unsigned int notNull:1;
     unsigned int nchar:8;
     unsigned int pref:22;
 }pair;
@@ -28,7 +29,7 @@ typedef struct matching{
 }matching;
 
  typedef struct hash{
-    pair **table;
+    pair *table;
     int pairsStored;
     int curbits;
     int power;
@@ -48,25 +49,25 @@ int addToHash(hash *h,int max, int p , int c){
     if(loadAverage <= .99)
     {
     
-    pair ** table = h->table;
+    pair *table = h->table;
     
     h->pairsStored++;
     int start;
     for(int i=0; i<max; i++){
     int increment = RED(INIT(p,c) + (i * STEP(p,c)), h->curbits);
-    if(table[increment]==0 && increment!=0){start=increment; break;}}
-    table[start]=malloc(sizeof(pair));
-    table[start]->nchar=c;
-    table[start]->pref=p;
+    if(table[increment].notNull==0 && increment!=0){start=increment; break;}}
+    table[start].nchar=c;
+    table[start].pref=p;
+    table[start].notNull=1;
     if(debugPrint1){printf("Adding nchar: %d, and pref: %d to hash at index %d\n", c, p, start);}
     return start;
     }
 return 0;
 }
-int  search(pair **table, int max, int p, int c){
+int  search(pair *table, int max, int p, int c){
     for(int i=0; i<max; i++){
     int increment = RED(INIT(p,c) + (i * STEP(p,c)), max);
-    if(table[increment] && table[increment]->pref==p && table[increment]->nchar==c){return increment;}}
+    if(table[increment].notNull && table[increment].pref==p && table[increment].nchar==c){return increment;}}
     return 0;
 }
  hash * initHash(int rows, int maxbits)
@@ -79,7 +80,8 @@ int  search(pair **table, int max, int p, int c){
     h->rOption=0;
     if(debugPrint1){printf("Line %d in intialize hash; num of rows: %d\n", __LINE__, rows);}
     h->curbits= rows;
-    h->table = calloc( h->curbits, sizeof(pair *));
+    h->table = malloc(sizeof(pair) * rows);
+    for(int i=0; i<rows; i++){h->table[i].notNull=0;}
     for(int i=0; i<256; i++)
     {
 	addToHash(h, h->curbits, 0, i);
@@ -88,11 +90,10 @@ int  search(pair **table, int max, int p, int c){
 }
  void printHash(hash *h)
 {
-	for(int i=0; i<h->curbits; i++){if(h->table[i]){printf("At Index: %d, pref: %d , char: %d\n",i, h->table[i]->pref, h->table[i]->nchar);}}
+//	for(int i=0; i<h->curbits; i++){if(h->table[i]){printf("At Index: %d, pref: %d , char: %d\n",i, h->table[i].pref, h->table[i].nchar);}}
 }
  void destroyHash(hash *h)
 {
-	for(int i=0; i<h->curbits; i++){if(h->table[i]){free(h->table[i]);}}
 	free(h->table);
 	free(h);
 }
@@ -108,7 +109,7 @@ int copyOver(hash *newHash, hash *oldHash, int nchar, int pref, matching *mdict)
 	{
 		int oldpref=pref;
 		mdict[pref].match=1;
-		pref = copyOver(newHash, oldHash, oldHash->table[pref]->nchar, oldHash->table[pref]->pref, mdict);
+		pref = copyOver(newHash, oldHash, oldHash->table[pref].nchar, oldHash->table[pref].pref, mdict);
 		mdict[oldpref].pref=pref;
 		s = addToHash(newHash, newHash->curbits, pref, nchar);
 	}
@@ -122,7 +123,6 @@ int copyOver(hash *newHash, hash *oldHash, int nchar, int pref, matching *mdict)
 void destroyTable(hash *h)
 {
 
-	for(int i=0; i<h->curbits; i++){if(h->table[i]){free(h->table[i]);}}
 	free(h->table);
 }
 
@@ -147,7 +147,7 @@ void  extendhash(hash *h)
 	{
 		if(mdict[i].match==0)
 		{
-		if(h->table[i]){mdict[i].pref=copyOver(newHash, h, h->table[i]->nchar, h->table[i]->pref, mdict); mdict[i].match=1;}
+		if(h->table[i].notNull){mdict[i].pref=copyOver(newHash, h, h->table[i].nchar, h->table[i].pref, mdict); mdict[i].match=1;}
 		}
 	}
 		

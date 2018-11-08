@@ -4,8 +4,8 @@
 int debugPrint=0;
 int debugPrint2=0;
 
-void printCodeAtIndex(pair **table, int c )
-{
+void printCodeAtIndex(pair *table, int c )
+{	/*
 	Stack s= STACK_EMPTY;
 	if(c){
 	while(table[c]->pref != 0)
@@ -18,7 +18,7 @@ void printCodeAtIndex(pair **table, int c )
         while(s){printf("%c", stackPop(&s));}
 	}
 	printf("\n");
-	
+	*/
 }
 
 
@@ -29,7 +29,8 @@ void emptyTable(hash *h)
     h->curbits = (2 << 8);
     h->power= 9;
     h->pairsStored= 0;
-    h->table=calloc(h->curbits, sizeof(pair *));
+    h->table=malloc(h->curbits * sizeof(pair));
+    for(int i=0; i<h->curbits; i++){h->table[i].notNull=0;}
     for(int i=0; i<256; i++)
     {
 	addToHash(h, h->curbits, 0, i);
@@ -104,14 +105,14 @@ void decode(hash *h){
 	oldC=0;
 	emptyTable(h);
 	continue;}
-	if(h->table[c]==0){stackPush(&s, 256); c = oldC;}
-        while(h->table[c]->pref != 0)
+	if(h->table[c].notNull==0){stackPush(&s, 256); c = oldC;}
+        while(h->table[c].pref != 0)
         {
 		if(debugPrint2){printf("Line %d in ed.c, pushing %d to the stack in decode", __LINE__, c);}
-                stackPush(&s, h->table[c]->nchar);
-                c=h->table[c]->pref;
+                stackPush(&s, h->table[c].nchar);
+                c=h->table[c].pref;
         }
-        finalK = h->table[c]->nchar;
+        finalK = h->table[c].nchar;
         putchar(finalK);
         while(s){int i = stackPop(&s);
 		if(i==256){putchar(finalK);}
