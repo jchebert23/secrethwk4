@@ -21,19 +21,14 @@ typedef struct pair{
     unsigned int notNull:1;
     unsigned int nchar:8;
     unsigned int pref:22;
-    unsigned int npref:22;
-    unsigned int match:1;
 }pair;
 
  typedef struct hash{
     pair *table;
-    int pairsStored;
-    int curbits;
-    int power;
-    int maxbit;
-    int block;
-    double ratio;
-    int rOption;
+    unsigned int pairsStored:22;
+    unsigned int curbits:22;
+    unsigned int power:5;
+    unsigned int maxbit:5;
 }hash;
 
 void extendhash(hash *h);
@@ -52,7 +47,7 @@ int addToHash(hash *h,int max, int p , int c){
     int start;
     for(int i=0; i<max; i++){
     int increment = RED(INIT(p,c) + (i * STEP(p,c)), h->curbits);
-    if(table[increment].notNull==0 && increment!=0){start=increment; break;}}
+    if(table[increment].notNull==0 && increment!=0 && increment!=p){start=increment; break;}}
     table[start].nchar=c;
     table[start].pref=p;
     table[start].notNull=1;
@@ -74,7 +69,6 @@ int  search(pair *table, int max, int p, int c){
     h->maxbit = maxbits;
     h->power =9;
     h->pairsStored=0;
-    h->rOption=0;
     if(debugPrint1){printf("Line %d in intialize hash; num of rows: %d\n", __LINE__, rows);}
     h->curbits= rows;
     h->table = malloc(sizeof(pair) * rows);
@@ -96,25 +90,19 @@ int  search(pair *table, int max, int p, int c){
 }
 
 
-int copyOver(hash *newHash, hash *oldHash, int nchar, int pref)
+void copyOver(hash *newHash, hash *oldHash, int index, int *mdict)
 {
     //This could be sped up
-    int s;
-    if(pref!=0)
-    {
-	if(oldHash->table[pref].match==0)
+    int pref= oldHash->table[index].pref;
+    int nchar= oldHash->table[index].nchar;
+    
+	while(mdict[pref]==0)
 	{
-		int oldpref=pref;
-		oldHash->table[pref].match=1;
-		pref = copyOver(newHash, oldHash, oldHash->table[pref].nchar, oldHash->table[pref].pref);
-		oldHash->table[oldpref].npref=pref;
-		s = addToHash(newHash, newHash->curbits, pref, nchar);
+		
+		copyOver(newHash, oldHash, pref, mdict);
 	}
-	else{s = addToHash(newHash, newHash->curbits, oldHash->table[pref].npref, nchar);}
-    }
-    else{s=search(newHash->table, newHash->curbits, pref, nchar);}
-    return s;
-
+	mdict[index]=addToHash(newHash, newHash->curbits, mdict[pref], nchar);
+	 
 }
 
 void destroyTable(hash *h)
@@ -132,22 +120,21 @@ void  extendhash(hash *h)
 	int prevSize= h->curbits;
 	hash *newHash = initHash(prevSize << 1, h->maxbit);
 	newHash->power= h->power +1;
-	//int *matching = malloc(sizeof(int) * prevSize);
-	for(int i=0; i<prevSize; i++){h->table[i].match=0;}
+	int *matching = calloc(prevSize, sizeof(int));
 	for(int i=0; i<256; i++)
 	{
 	int s = search(h->table, h->curbits, 0, i);
-	h->table[s].match=1;
-	h->table[s].npref=search(newHash->table, newHash->curbits, 0, i);
+	matching[s]= search(newHash->table, newHash->curbits, 0, i);
 	}
 	for(int i = 0; i<h->curbits; i++)
 	{
-		if(h->table[i].match==0)
+		if(matching[i]==0)
 		{
-		if(h->table[i].notNull){h->table[i].npref=copyOver(newHash, h, h->table[i].nchar, h->table[i].pref); h->table[i].match=1;}
+		if(h->table[i].notNull){copyOver(newHash, h, i,matching);}
 		}
 	}	
 	destroyTable(h);
+	free(matching);
 	h->curbits=newHash->curbits;
 	h->power= newHash->power;
 	h->table= newHash->table;

@@ -1,4 +1,5 @@
 #include "hash.c"
+#include "stack.c"
 #include "/c/cs323/Hwk4/code.h"
 int debugPrint=0;
 int debugPrint2=0;
@@ -23,15 +24,13 @@ void printCodeAtIndex(pair *table, int c )
 
 void emptyTable(hash *h)
 {
-    if(h->curbits > (2 << 8))
-    {
-	    free(h->table);
-	    h->table= malloc(sizeof(pair) * (2 << 8));
-    }
+
+    destroyTable(h);
     h->curbits = (2 << 8);
     h->power= 9;
     h->pairsStored= 0;
-    for(int i=0; i<h->curbits; i++){h->table[i].notNull=0; h->table[i].pref=0; h->table[i].nchar=0;}
+    h->table=malloc(h->curbits * sizeof(pair));
+    for(int i=0; i<h->curbits; i++){h->table[i].notNull=0;}
     for(int i=0; i<256; i++)
     {
 	addToHash(h, h->curbits, 0, i);
@@ -39,7 +38,7 @@ void emptyTable(hash *h)
 }
 
 
-void encode(hash *h){
+void encode(hash *h, double ratio, int block, int rOption){
     int c=0;
     int k;
     int i;
@@ -66,11 +65,11 @@ void encode(hash *h){
 		    if(debugPrint){printf("Added to table at index %d\n", search(h->table, h->curbits, c, k));} 
 		    
 		    
-		    if(h->rOption)
+		    if(rOption)
 		    {
-			    if(h->block==codes)
+			    if(block==codes)
 			    {
-				    if((double) nsent > (h->ratio * (double) nread))
+				    if((double) nsent > (ratio * (double) nread))
 				    {
 				    emptyTable(h);	    
 				    putBits(h->power, 0);
@@ -92,27 +91,12 @@ void encode(hash *h){
     destroyHash(h);
 }
 
-int decodeRecursive(hash *h, int c)
-{
-    if(h->table[c].pref == 0)
-    {
-	    putchar(h->table[c].nchar);
-	    return h->table[c].nchar;
-    }
-    else{
-    int x = h->table[c].pref;
-    int y = decodeRecursive(h, x);
-    putchar(h->table[c].nchar);
-    return y;
-}
-}
-
 void decode(hash *h){
+   Stack s = STACK_EMPTY;
    int oldC = 0;
    int newC = 0;
    int finalK=0;
    int c=0;
-   int oldFinalK=0;
    //may have problem with two files open
    while((c= newC= getBits(h->power))!=EOF)
     {	
@@ -121,11 +105,19 @@ void decode(hash *h){
 	oldC=0;
 	emptyTable(h);
 	continue;}
-	int firstCond = 0;
-	if(h->table[c].notNull==0){ c = oldC;firstCond=1; oldFinalK=finalK;}
-        finalK = decodeRecursive(h, c);
-        if(firstCond){putchar(oldFinalK);}
-	if(oldC!=0)
+	if(h->table[c].notNull==0){stackPush(&s, 256); c = oldC;}
+        while(h->table[c].pref != 0)
+        {
+		if(debugPrint2){printf("Line %d in ed.c, pushing %d to the stack in decode", __LINE__, c);}
+                stackPush(&s, h->table[c].nchar);
+                c=h->table[c].pref;
+        }
+        finalK = h->table[c].nchar;
+        putchar(finalK);
+        while(s){int i = stackPop(&s);
+		if(i==256){putchar(finalK);}
+		else{putchar(i);}}	
+        if(oldC!=0)
         {
 
                 addToHash(h, h->curbits,oldC, finalK);
@@ -196,8 +188,8 @@ int main(int argc, char **argv){
     int maxbit = maxbits(argc, argv);
     char *block = blockRatio(argc, argv);
     int rOption=0;
-    double ratio;
-    int blockSize;
+    double ratio=0;
+    int blockSize=0;
     if(block){rOption=1;
     blockSize =  (getIntFromBlock(block));
     ratio = atof(block) -  (double) (int) atof(block);}
@@ -205,13 +197,7 @@ int main(int argc, char **argv){
     {
 	    
 	    hash *h = initHash(2 << 8, maxbit);
-	    if(rOption)
-	    {
-	    h->rOption=rOption;
-	    h->block=blockSize;
-	    h->ratio=ratio;
-	    }
-	    encode(h);
+	    encode(h, ratio, blockSize, rOption);
     }
     else if(strcmp(argv[0], "./decode")==0)
     {
