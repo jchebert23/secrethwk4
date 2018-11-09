@@ -44,7 +44,7 @@ void encode(hash *h){
     int nread=0;
     int nsent=0;
     int codes=0;
-    while((k =getchar()) != EOF)
+    while((k =getc(stdin)) != EOF)
     {
 	    nread+=8;
 	    if(debugPrint){printf("Testing char %c with prefix code: ", k); 
@@ -137,7 +137,6 @@ void decode(hash *h){
 
     destroyHash(h);
 }
-
 int maxbits(int argc, char **argv){
     int output=12;
     for(int i=0; i<argc; i++)
@@ -189,10 +188,25 @@ int getIntFromBlock(char *s)
 	return (int) x; 
 }
 
+int badOptions(int argc, char **argv)
+{
+    for(int i=1; i<argc; i= i+2)
+    {
+	    if(!(strcmp(argv[i], "-r")==0 || strcmp(argv[i], "-m")==0))
+	    {
+		fprintf(stderr, "bad option\n");
+		exit(0);
+	    }
+    }
+    return 0;
+
+}
+
 int main(int argc, char **argv){
     static char bin[64], bout[64];
     setvbuf(stdin, bin, _IOFBF, 64);
     setvbuf(stdout, bout, _IOFBF, 64);
+    badOptions(argc, argv);
     int maxbit = maxbits(argc, argv);
     char *block = blockRatio(argc, argv);
     int rOption=0;
@@ -203,7 +217,8 @@ int main(int argc, char **argv){
     ratio = atof(block) -  (double) (int) atof(block);}
     if(strcmp(argv[0], "./encode")==0)
     {
-	    
+
+	    putBits(16, 538);
 	    hash *h = initHash(2 << 8, maxbit);
 	    if(rOption)
 	    {
@@ -215,6 +230,13 @@ int main(int argc, char **argv){
     }
     else if(strcmp(argv[0], "./decode")==0)
     {
+	    int check = (int) getBits(16);
+	    if(check!=538)
+	    {
+		fprintf(stderr, "Invalid file input to decode\n");
+		flushBits();
+		exit(0);
+	    }
 	    int max = getBits(8);
 	    hash *h = initHash(2 << 8, max);
 	    decode(h);
